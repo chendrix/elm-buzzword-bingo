@@ -9,6 +9,8 @@ import List
 import Result
 import String
 
+import Json.Decode
+
 import StartApp
 
 -- MAIN
@@ -44,7 +46,8 @@ view address model =
 viewPhraseInput : Signal.Address Action -> String -> Html
 viewPhraseInput address phrase =
   input
-    [ on "input" targetValue (Signal.message address << EnterPhrase)
+    [ on "input" targetValue (Signal.message address << UpdatePhrase)
+    , onEnter address SubmitEntry
     , placeholder "Phrase"
     , value phrase
     ]
@@ -59,8 +62,9 @@ viewPointsInput address points =
           String.toInt strPoints
           |> Result.toMaybe
           |> Maybe.withDefault 0
-          |> Signal.message address << EnterPoints
+          |> Signal.message address << UpdatePoints
       )
+    , onEnter address SubmitEntry
     , placeholder "0"
     , value (toString points)
     , type' "number"
@@ -86,6 +90,7 @@ viewEntry address n entry =
     ]
     [ span [] [ text entry.phrase ]
     , span [] [ text (toString entry.points) ]
+    , button [ onClick address (DeleteEntry n) ] [ text "✗" ]
     ]
 
 
@@ -137,8 +142,8 @@ pointTotal entries =
 
 -- UPDATE
 type Action
-  = EnterPhrase String
-  | EnterPoints Int
+  = UpdatePhrase String
+  | UpdatePoints Int
   | SubmitEntry
   | SortEntries
   | ToggleEntry Int
@@ -148,14 +153,17 @@ type Action
 update : Action -> State -> State
 update action model =
   case action of
-    EnterPhrase phrase ->
+    UpdatePhrase phrase ->
       { model | phraseInput <- phrase }
 
-    EnterPoints points ->
+    UpdatePoints points ->
       { model | pointsInput <- points }
 
     SubmitEntry ->
-      { model | entries <- ((extractEntry model) :: model.entries) }
+      { model | entries <- ((extractEntry model) :: model.entries)
+              , pointsInput <- 0
+              , phraseInput <- ""
+      }
 
     SortEntries ->
       { model | entries <- (sortEntries model.entries) }
@@ -195,3 +203,14 @@ dropN n l =
           | otherwise ->
               x :: (dropN (n - 1) l)
 
+
+onEnter : Signal.Address a -> a -> Attribute
+onEnter address value =
+    on "keydown"
+      (Json.Decode.customDecoder keyCode is13)
+      (\_ -> Signal.message address value)
+
+
+is13 : Int -> Result String ()
+is13 code =
+  if code == 13 then Ok () else Err "not the right key code"
