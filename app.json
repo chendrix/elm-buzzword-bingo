@@ -1,0 +1,9 @@
+{
+    "name": "Buzzword Bingo in Elm",
+    "repository": "https://github.com/chendrix/elm-buzzword-bingo",
+    "env": {
+        "BUILDPACK_URL": "https://github.com/srid/heroku-buildpack-elm.git",
+        "ELM_COMPILE": "make",
+        "ELM_STATIC_DIR": "."
+    }
+}
